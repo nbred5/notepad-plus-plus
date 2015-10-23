@@ -26,6 +26,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include <deque>
+#include <algorithm>
 #include <time.h>
 #include <sys/stat.h>
 #include "Buffer.h"
@@ -593,9 +594,14 @@ BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encodin
 
 	char data[blockSize + 8]; // +8 for incomplete multibyte char
 	FormatType bkformat = FormatType::unknown;
+<<<<<<< HEAD
 
 	//bool res = loadFileData(doc, backupFileName?backupFileName:fullpath, data, &UnicodeConvertor, L_TEXT, encoding, &bkformat);
   bool res = loadFileData(doc, backupFileName?backupFileName:fullpath, data, &UnicodeConvertor, L_TEXT, encoding, &bkformat, rejectBinaryFile);
+=======
+	LangType detectedLang = L_TEXT;
+	bool res = loadFileData(doc, backupFileName ? backupFileName : fullpath, data, &UnicodeConvertor, detectedLang, encoding, &bkformat);
+>>>>>>> upstream/master
 	if (res)
 	{
 		Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_REGULAR, fullpath);
@@ -622,16 +628,20 @@ BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encodin
 		buf->setUnicodeMode(ndds._unicodeMode);
 		buf->setEncoding(-1);
 
+		// if no file extension, and the language has been detected,  we use the detected value
+		if ((buf->getLangType() == L_TEXT) && (detectedLang != L_TEXT))
+			buf->setLangType(detectedLang);
+
 		if (encoding == -1)
 		{
 			// 3 formats : WIN_FORMAT, UNIX_FORMAT and MAC_FORMAT
 			if (nullptr != UnicodeConvertor.getNewBuf())
 			{
-				FormatType format = getEOLFormatForm(UnicodeConvertor.getNewBuf(), UnicodeConvertor.getNewSize());
+				FormatType format = getEOLFormatForm(UnicodeConvertor.getNewBuf(), UnicodeConvertor.getNewSize(),ndds._format);
 				buf->setFormat(format);
 			}
 			else
-				buf->setFormat(FormatType::osdefault);
+				buf->setFormat(ndds._format);
 
 			UniMode um = UnicodeConvertor.getEncoding();
 			if (um == uni7Bit)
@@ -669,21 +679,26 @@ bool FileManager::reloadBuffer(BufferID id)
 	int encoding = buf->getEncoding();
 	char data[blockSize + 8]; // +8 for incomplete multibyte char
 	FormatType bkformat;
+	LangType lang = buf->getLangType();
 
-	bool res = loadFileData(doc, buf->getFullPathName(), data, &UnicodeConvertor, buf->getLangType(), encoding, &bkformat);
+	bool res = loadFileData(doc, buf->getFullPathName(), data, &UnicodeConvertor, lang, encoding, &bkformat);
 	buf->_canNotify = true;
 
 	if (res)
 	{
 		if (encoding == -1)
 		{
+			NppParameters *pNppParamInst = NppParameters::getInstance();
+			const NewDocDefaultSettings & ndds = (pNppParamInst->getNppGUI()).getNewDocDefaultSettings(); // for ndds._format
+			
 			if (nullptr != UnicodeConvertor.getNewBuf())
 			{
-				FormatType format = getEOLFormatForm(UnicodeConvertor.getNewBuf(), UnicodeConvertor.getNewSize());
+				FormatType format = getEOLFormatForm(UnicodeConvertor.getNewBuf(), UnicodeConvertor.getNewSize(),ndds._format);
 				buf->setFormat(format);
 			}
-			else
-				buf->setFormat(FormatType::osdefault);
+			else{
+				buf->setFormat(ndds._format);
+			}
 
 			buf->setUnicodeMode(UnicodeConvertor.getEncoding());
 		}
@@ -1247,10 +1262,104 @@ int FileManager::detectCodepage(char* buf, size_t len)
 	return codepage;
 }
 
+<<<<<<< HEAD
 // inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data, Utf8_16_Read * UnicodeConvertor,
 	// LangType language, int & encoding, FormatType* pFormat)
 inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data, Utf8_16_Read * UnicodeConvertor,
   LangType language, int & encoding, FormatType* pFormat, bool rejectBinaryFile)
+=======
+LangType FileManager::detectLanguageFromTextBegining(const unsigned char *data, unsigned int dataLen)
+{
+	struct FirstLineLanguages
+	{
+		std::string pattern;
+		LangType lang;
+	};
+
+	// Is the buffer at least the size of a BOM?
+	if (dataLen <= 3)
+		return L_TEXT;
+
+	// Eliminate BOM if present
+	size_t i = 0;
+	if ((data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) || // UTF8 BOM
+		(data[0] == 0xFE && data[1] == 0xFF && data[2] == 0x00) || // UTF16 BE BOM
+		(data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00))   // UTF16 LE BOM
+		i += 3;
+
+	// Skip any space-like char
+	for (; i < dataLen; ++i)
+	{
+		if (data[i] != ' ' && data[i] != '\t' && data[i] != '\n' && data[i] != '\r')
+			break;
+	}
+
+	// Create the buffer to need to test
+	const size_t longestLength = 40; // shebangs can be large
+	std::string buf2Test = std::string((const char *)data + i, longestLength);
+
+	// Is there a \r or \n in the buffer? If so, truncate it
+	auto cr = buf2Test.find("\r");
+	auto nl = buf2Test.find("\n");
+	auto crnl = min(cr, nl);
+	if (crnl != std::string::npos && crnl < longestLength)
+		buf2Test = std::string((const char *)data + i, crnl);
+
+	// First test for a Unix-like Shebang
+	// See https://en.wikipedia.org/wiki/Shebang_%28Unix%29 for more details about Shebang
+	std::string shebang = "#!";
+	auto res = std::mismatch(shebang.begin(), shebang.end(), buf2Test.begin());
+	if (res.first == shebang.end())
+	{
+		// Make a list of the most commonly used languages
+		const size_t SHEBANG_LANGUAGES = 6;
+		FirstLineLanguages ShebangLangs[SHEBANG_LANGUAGES] = {
+			{ "sh",		L_BASH },
+			{ "python", L_PYTHON },
+			{ "perl",	L_PERL },
+			{ "php",	L_PHP },
+			{ "ruby",	L_RUBY },
+			{ "node",	L_JAVASCRIPT },
+		};
+
+		// Go through the list of languages
+		for (i = 0; i < SHEBANG_LANGUAGES; ++i)
+		{
+			if (buf2Test.find(ShebangLangs[i].pattern) != std::string::npos)
+			{
+				return ShebangLangs[i].lang;
+			}
+		}
+
+		// Unrecognized shebang (there is always room for improvement ;-)
+		return L_TEXT;
+	}
+
+	// Are there any other patterns we know off?
+	const size_t FIRST_LINE_LANGUAGES = 4;
+	FirstLineLanguages languages[FIRST_LINE_LANGUAGES] = {
+		{ "<?xml",			L_XML },
+		{ "<?php",			L_PHP },
+		{ "<html",			L_HTML },
+		{ "<!DOCTYPE html",	L_HTML },
+	};
+
+	for (i = 0; i < FIRST_LINE_LANGUAGES; ++i)
+	{
+		res = std::mismatch(languages[i].pattern.begin(), languages[i].pattern.end(), buf2Test.begin());
+		if (res.first == languages[i].pattern.end())
+		{
+			return languages[i].lang;
+		}
+	}
+
+	// Unrecognized first line, we assume it is a text file for now
+	return L_TEXT;
+}
+
+inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data, Utf8_16_Read * UnicodeConvertor,
+	LangType & language, int & encoding, FormatType* pFormat)
+>>>>>>> upstream/master
 {
 	FILE *fp = generic_fopen(filename, TEXT("rb"));
 	if (!fp)
@@ -1323,6 +1432,7 @@ inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char
 			lenFile = fread(data+incompleteMultibyteChar, 1, blockSize-incompleteMultibyteChar, fp) + incompleteMultibyteChar;
 			if (lenFile == 0) break;
 
+<<<<<<< HEAD
             // check if file contain any BOM
         if (isFirstTime)
         {
@@ -1347,6 +1457,30 @@ inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char
 									  return false;
 							  }
 					      }
+=======
+            if (isFirstTime)
+            {
+				// check if file contain any BOM
+                if (Utf8_16_Read::determineEncoding((unsigned char *)data, lenFile) != uni8Bit)
+                {
+                    // if file contains any BOM, then encoding will be erased,
+                    // and the document will be interpreted as UTF
+                    encoding = -1;
+				}
+				else if (encoding == -1)
+				{
+					if (NppParameters::getInstance()->getNppGUI()._detectEncoding)
+						encoding = detectCodepage(data, lenFile);
+                }
+
+				if (language == L_TEXT)
+				{
+					// check the language du fichier
+					language = detectLanguageFromTextBegining((unsigned char *)data, lenFile);
+				}
+
+                isFirstTime = false;
+>>>>>>> upstream/master
             }
             isFirstTime = false;
         }
@@ -1397,7 +1531,18 @@ inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char
 
 	// broadcast the format
 	if (pFormat != nullptr)
-		*pFormat = (format != FormatType::unknown) ? format : FormatType::osdefault;
+	{
+		if (format == FormatType::unknown)
+		{
+			NppParameters *pNppParamInst = NppParameters::getInstance();
+			const NewDocDefaultSettings & ndds = (pNppParamInst->getNppGUI()).getNewDocDefaultSettings(); // for ndds._format
+			*pFormat = ndds._format;
+		}
+		else
+		{
+			*pFormat = format;
+		}
+	}
 
 	_pscratchTilla->execute(SCI_EMPTYUNDOBUFFER);
 	_pscratchTilla->execute(SCI_SETSAVEPOINT);

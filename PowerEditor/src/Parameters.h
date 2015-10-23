@@ -910,9 +910,7 @@ struct Lang final
 		for (int i = 0 ; i < NB_LIST ; _langKeyWordList[i] = NULL, ++i);
 	}
 
-	Lang(LangType langID, const TCHAR *name)
-		: _langID(langID)
-		, _langName(name ? name : TEXT(""))
+	Lang(LangType langID, const TCHAR *name) : _langID(langID), _langName(name ? name : TEXT(""))
 	{
 		for (int i = 0 ; i < NB_LIST ; _langKeyWordList[i] = NULL, ++i);
 	}
@@ -1627,7 +1625,10 @@ private:
 	WNDPROC _enableThemeDialogTextureFuncAddr;
 	bool _isLocal;
 
-
+public:
+	void setShortcutDirty() { _isAnyShortcutModified = true; };
+private:
+	bool _isAnyShortcutModified = false;
 	std::vector<CommandShortcut> _shortcuts;			//main menu shortuts. Static size
 	std::vector<int> _customizedShortcuts;			//altered main menu shortcuts. Indices static. Needed when saving alterations
 	std::vector<MacroShortcut> _macros;				//macro shortcuts, dynamic size, defined on loading macros and adding/deleting them
