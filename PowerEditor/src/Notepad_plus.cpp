@@ -231,8 +231,8 @@ LRESULT Notepad_plus::init(HWND hwnd)
 	int iconDpiDynamicalSize = NppParameters::getInstance()->_dpiManager.scaleY(_toReduceTabBar?13:20);
 	_docTabIconList.create(iconDpiDynamicalSize, _pPublicInterface->getHinst(), docTabIconIDs, sizeof(docTabIconIDs)/sizeof(int));
 
-	_mainDocTab.init(_pPublicInterface->getHinst(), hwnd, &_mainEditView, &_docTabIconList);
-	_subDocTab.init(_pPublicInterface->getHinst(), hwnd, &_subEditView, &_docTabIconList);
+	_mainDocTab.init(_pPublicInterface->getHinst(), hwnd, &_mainEditView);
+	_subDocTab.init(_pPublicInterface->getHinst(), hwnd, &_subEditView);
 
 	_mainEditView.display();
 
@@ -266,11 +266,14 @@ LRESULT Notepad_plus::init(HWND hwnd)
 	_mainEditView.setWrapMode(svp1._lineWrapMethod);
     _subEditView.setWrapMode(svp1._lineWrapMethod);
 
-	_mainEditView.execute(SCI_SETTECHNOLOGY, SC_TECHNOLOGY_DIRECTWRITE);
-	_subEditView.execute(SCI_SETTECHNOLOGY, SC_TECHNOLOGY_DIRECTWRITE);
+	if (svp1._doDirectDraw)
+	{
+		_mainEditView.execute(SCI_SETTECHNOLOGY, SC_TECHNOLOGY_DIRECTWRITE);
+		_subEditView.execute(SCI_SETTECHNOLOGY, SC_TECHNOLOGY_DIRECTWRITE);
 
-	_mainEditView.execute(SCI_SETBUFFEREDDRAW, 0);
-	_subEditView.execute(SCI_SETBUFFEREDDRAW, 0);
+		_mainEditView.execute(SCI_SETBUFFEREDDRAW, 0);
+		_subEditView.execute(SCI_SETBUFFEREDDRAW, 0);
+	}
 
 	_mainEditView.execute(SCI_SETCARETLINEVISIBLE, svp1._currentLineHilitingShow);
 	_subEditView.execute(SCI_SETCARETLINEVISIBLE, svp1._currentLineHilitingShow);
@@ -333,7 +336,7 @@ LRESULT Notepad_plus::init(HWND hwnd)
 			::SendMessage(_mainDocTab.getHSelf(), WM_SETFONT, (WPARAM)hf, MAKELPARAM(TRUE, 0));
 			::SendMessage(_subDocTab.getHSelf(), WM_SETFONT, (WPARAM)hf, MAKELPARAM(TRUE, 0));
 		}
-		int tabDpiDynamicalHeight = NppParameters::getInstance()->_dpiManager.scaleY(20);
+		int tabDpiDynamicalHeight = NppParameters::getInstance()->_dpiManager.scaleY(18);
 		int tabDpiDynamicalWidth = NppParameters::getInstance()->_dpiManager.scaleX(45);
 		TabCtrl_SetItemSize(_mainDocTab.getHSelf(), tabDpiDynamicalWidth, tabDpiDynamicalHeight);
 		TabCtrl_SetItemSize(_subDocTab.getHSelf(), tabDpiDynamicalWidth, tabDpiDynamicalHeight);
@@ -342,12 +345,12 @@ LRESULT Notepad_plus::init(HWND hwnd)
 
 
 	TabBarPlus::doDragNDrop((tabBarStatus & TAB_DRAGNDROP) != 0);
-	TabBarPlus::setDrawTopBar((tabBarStatus & TAB_DRAWTOPBAR) != 0);
-	TabBarPlus::setDrawInactiveTab((tabBarStatus & TAB_DRAWINACTIVETAB) != 0);
-	TabBarPlus::setDrawTabCloseButton((tabBarStatus & TAB_CLOSEBUTTON) != 0);
+	//TabBarPlus::setDrawTopBar((tabBarStatus & TAB_DRAWTOPBAR) != 0);
+	//TabBarPlus::setDrawInactiveTab((tabBarStatus & TAB_DRAWINACTIVETAB) != 0);
+	//TabBarPlus::setDrawTabCloseButton((tabBarStatus & TAB_CLOSEBUTTON) != 0);
 	TabBarPlus::setDbClk2Close((tabBarStatus & TAB_DBCLK2CLOSE) != 0);
-	TabBarPlus::setVertical((tabBarStatus & TAB_VERTICAL) != 0);
-	drawTabbarColoursFromStylerArray();
+	//TabBarPlus::setVertical((tabBarStatus & TAB_VERTICAL) != 0);
+	//drawTabbarColoursFromStylerArray();
 
     //--Splitter Section--//
 	bool isVertical = (nppGUI._splitterPos == POS_VERTICAL);
@@ -1579,7 +1582,8 @@ bool Notepad_plus::findInFiles()
 		BufferID id = MainFileManager->getBufferFromName(fileNames.at(i).c_str());
 		if (id == BUFFER_INVALID)
 		{
-			id = MainFileManager->loadFile(fileNames.at(i).c_str());
+			// id = MainFileManager->loadFile(fileNames.at(i).c_str());
+      id = MainFileManager->loadFile(fileNames.at(i).c_str(), NULL, -1, NULL, 0, true);
 			closeBuf = true;
 		}
 

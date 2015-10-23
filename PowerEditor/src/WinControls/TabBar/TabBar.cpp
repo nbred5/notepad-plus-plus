@@ -262,7 +262,7 @@ void TabBarPlus::init(HINSTANCE hInst, HWND parent, bool isVertical, bool isTrad
 	int style = WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE |\
         TCS_FOCUSNEVER | TCS_TABS | vertical | multiLine;
 
-	style |= TCS_OWNERDRAWFIXED;
+	//style |= TCS_OWNERDRAWFIXED;
 
 	_hSelf = ::CreateWindowEx(
 				0,
@@ -699,6 +699,20 @@ void TabBarPlus::drawItem(DRAWITEMSTRUCT *pDrawItemStruct)
 	::FillRect(hDC, &rect, hBrush);
 	::DeleteObject((HGDIOBJ)hBrush);
 
+	/*RECT clientRect;
+	RECT lastTabRect;
+	::GetClientRect(_hSelf, &clientRect);
+	int itemCount = TabCtrl_GetItemCount(_hSelf);
+	TabCtrl_GetItemRect(_hSelf, itemCount - 1, &lastTabRect);
+	RECT spaceRect;
+	spaceRect.top = clientRect.top;
+	spaceRect.bottom = lastTabRect.bottom;
+	spaceRect.left = lastTabRect.right - 1 ;
+	spaceRect.right = clientRect.right;
+	hBrush = ::CreateSolidBrush(::GetSysColor(COLOR_GRAYTEXT));
+	::FillRect(hDC, &spaceRect, hBrush);
+	::DeleteObject((HGDIOBJ)hBrush);*/
+
 	if (isSelected)
 	{
 		if (_drawTopBar)
@@ -713,7 +727,7 @@ void TabBarPlus::drawItem(DRAWITEMSTRUCT *pDrawItemStruct)
 			}
 			else
 			{
-				barRect.bottom = barRect.top + paddingDynamicSix;
+				//barRect.bottom = barRect.top + paddingDynamicSix;
 				rect.top += paddingDynamicTwo;
 			}
 
@@ -732,15 +746,41 @@ void TabBarPlus::drawItem(DRAWITEMSTRUCT *pDrawItemStruct)
 		{
 			RECT barRect = rect;
 
+			barRect.bottom += 2;
+
 			hBrush = ::CreateSolidBrush(_inactiveBgColour);
 			::FillRect(hDC, &barRect, hBrush);
 			::DeleteObject((HGDIOBJ)hBrush);
 		}
+		/*else
+		{
+			RECT barRect = rect;
+
+			barRect.left -= 5;
+			barRect.right += 2;
+			barRect.top = 0;
+			barRect.bottom = 2;
+
+			hBrush = ::CreateSolidBrush(::GetSysColor(COLOR_GRAYTEXT));
+			::FillRect(hDC, &barRect, hBrush);
+
+			barRect = rect;
+
+			barRect.left -= 5;
+			barRect.right = 2;
+			barRect.top = 0;
+			barRect.bottom += 2;
+
+			::FillRect(hDC, &barRect, hBrush);
+
+			::DeleteObject((HGDIOBJ)hBrush);
+		}*/
 	}
 
 	if (_drawTabCloseButton)
 	{
 		RECT closeButtonRect = _closeButtonZone.getButtonRectFrom(rect);
+		//closeButtonRect.left -= 20;
 		if (isSelected)
 		{
 			if (!_isVertical)
@@ -752,8 +792,8 @@ void TabBarPlus::drawItem(DRAWITEMSTRUCT *pDrawItemStruct)
 		{
 			if (_isVertical)
 				closeButtonRect.left += 2;
-			else
-				closeButtonRect.left += NppParameters::getInstance()->_dpiManager.scaleX(2);
+			//else
+				//closeButtonRect.left += NppParameters::getInstance()->_dpiManager.scaleX(2);
 		}
 
 
@@ -790,42 +830,42 @@ void TabBarPlus::drawItem(DRAWITEMSTRUCT *pDrawItemStruct)
 		::DeleteObject(hBmp);
 	}
 
-	// Draw image
-	HIMAGELIST hImgLst = (HIMAGELIST)::SendMessage(_hSelf, TCM_GETIMAGELIST, 0, 0);
+	// // Draw image
+	// HIMAGELIST hImgLst = (HIMAGELIST)::SendMessage(_hSelf, TCM_GETIMAGELIST, 0, 0);
 
-	SIZE charPixel;
-	::GetTextExtentPoint(hDC, TEXT(" "), 1, &charPixel);
-	int spaceUnit = charPixel.cx;
+	 SIZE charPixel;
+	 ::GetTextExtentPoint(hDC, TEXT(" "), 1, &charPixel);
+	 int spaceUnit = charPixel.cx;
 
-	if (hImgLst && tci.iImage >= 0)
-	{
-		IMAGEINFO info;
-		ImageList_GetImageInfo(hImgLst, tci.iImage, &info);
+	// if (hImgLst && tci.iImage >= 0)
+	// {
+		// IMAGEINFO info;
+		// ImageList_GetImageInfo(hImgLst, tci.iImage, &info);
 
-		RECT& imageRect = info.rcImage;
+		// RECT& imageRect = info.rcImage;
 
-		int yPos = 0;
-		int xPos = 0;
-		if (_isVertical)
-			xPos = (rect.left + (rect.right - rect.left) / 2 + NppParameters::getInstance()->_dpiManager.scaleX(2)) - (imageRect.right - imageRect.left) / 2;
-		else
-			yPos = (rect.top + (rect.bottom - rect.top) / 2 + (isSelected ? 0 : NppParameters::getInstance()->_dpiManager.scaleX(2))) - (imageRect.bottom - imageRect.top) / 2;
+		// int yPos = 0;
+		// int xPos = 0;
+		// if (_isVertical)
+			// xPos = (rect.left + (rect.right - rect.left) / 2 + NppParameters::getInstance()->_dpiManager.scaleX(2)) - (imageRect.right - imageRect.left) / 2;
+		// else
+			// yPos = (rect.top + (rect.bottom - rect.top) / 2 + (isSelected ? 0 : NppParameters::getInstance()->_dpiManager.scaleX(2))) - (imageRect.bottom - imageRect.top) / 2;
 
-		int marge = spaceUnit;
+		// int marge = spaceUnit;
 
-		if (_isVertical)
-		{
-			rect.bottom -= imageRect.bottom - imageRect.top;
-			ImageList_Draw(hImgLst, tci.iImage, hDC, xPos, rect.bottom - marge, isSelected?ILD_TRANSPARENT:ILD_SELECTED);
-			rect.bottom += marge;
-		}
-		else
-		{
-			rect.left += marge;
-			ImageList_Draw(hImgLst, tci.iImage, hDC, rect.left, yPos, isSelected?ILD_TRANSPARENT:ILD_SELECTED);
-			rect.left += imageRect.right - imageRect.left;
-		}
-	}
+		// if (_isVertical)
+		// {
+			// rect.bottom -= imageRect.bottom - imageRect.top;
+			// ImageList_Draw(hImgLst, tci.iImage, hDC, xPos, rect.bottom - marge, isSelected?ILD_TRANSPARENT:ILD_SELECTED);
+			// rect.bottom += marge;
+		// }
+		// else
+		// {
+			// rect.left += marge;
+			// ImageList_Draw(hImgLst, tci.iImage, hDC, rect.left, yPos, isSelected?ILD_TRANSPARENT:ILD_SELECTED);
+			// rect.left += imageRect.right - imageRect.left;
+		// }
+	// }
 
 	bool isStandardSize = (::SendMessage(_hParent, NPPM_INTERNAL_ISTABBARREDUCED, 0, 0) == TRUE);
 

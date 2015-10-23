@@ -569,7 +569,8 @@ void FileManager::closeBuffer(BufferID id, ScintillaEditView * identifier)
 
 
 // backupFileName is sentinel of backup mode: if it's not NULL, then we use it (load it). Otherwise we use filename
-BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encoding, const TCHAR *backupFileName, time_t fileNameTimestamp)
+// BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encoding, const TCHAR *backupFileName, time_t fileNameTimestamp)
+BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encoding, const TCHAR *backupFileName, time_t fileNameTimestamp, bool rejectBinaryFile)
 {
 	bool ownDoc = false;
 	if (doc == NULL)
@@ -593,7 +594,8 @@ BufferID FileManager::loadFile(const TCHAR * filename, Document doc, int encodin
 	char data[blockSize + 8]; // +8 for incomplete multibyte char
 	FormatType bkformat = FormatType::unknown;
 
-	bool res = loadFileData(doc, backupFileName?backupFileName:fullpath, data, &UnicodeConvertor, L_TEXT, encoding, &bkformat);
+	//bool res = loadFileData(doc, backupFileName?backupFileName:fullpath, data, &UnicodeConvertor, L_TEXT, encoding, &bkformat);
+  bool res = loadFileData(doc, backupFileName?backupFileName:fullpath, data, &UnicodeConvertor, L_TEXT, encoding, &bkformat, rejectBinaryFile);
 	if (res)
 	{
 		Buffer* newBuf = new Buffer(this, _nextBufferID, doc, DOC_REGULAR, fullpath);
@@ -1245,8 +1247,10 @@ int FileManager::detectCodepage(char* buf, size_t len)
 	return codepage;
 }
 
+// inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data, Utf8_16_Read * UnicodeConvertor,
+	// LangType language, int & encoding, FormatType* pFormat)
 inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char* data, Utf8_16_Read * UnicodeConvertor,
-	LangType language, int & encoding, FormatType* pFormat)
+  LangType language, int & encoding, FormatType* pFormat, bool rejectBinaryFile)
 {
 	FILE *fp = generic_fopen(filename, TEXT("rb"));
 	if (!fp)
@@ -1320,21 +1324,32 @@ inline bool FileManager::loadFileData(Document doc, const TCHAR * filename, char
 			if (lenFile == 0) break;
 
             // check if file contain any BOM
-            if (isFirstTime)
+        if (isFirstTime)
+        {
+            if (Utf8_16_Read::determineEncoding((unsigned char *)data, lenFile) != uni8Bit)
             {
-                if (Utf8_16_Read::determineEncoding((unsigned char *)data, lenFile) != uni8Bit)
-                {
-                    // if file contains any BOM, then encoding will be erased,
-                    // and the document will be interpreted as UTF
-                    encoding = -1;
-				}
-				else if (encoding == -1)
-				{
-					if (NppParameters::getInstance()->getNppGUI()._detectEncoding)
-						encoding = detectCodepage(data, lenFile);
-                }
-                isFirstTime = false;
+                // if file contains any BOM, then encoding will be erased,
+                // and the document will be interpreted as UTF
+                encoding = -1;
+				    }
+				    else if (encoding == -1)
+				    {
+					      if (NppParameters::getInstance()->getNppGUI()._detectEncoding)
+						        encoding = detectCodepage(data, lenFile);
+					// reject binary file
+					      if (rejectBinaryFile)
+					      {
+							  char * found;
+							  found = (char*)memchr(data, '\0', (int(lenFile) > 500 ? 500: (int)lenFile));
+							  if (found != NULL)
+							  {
+									  fclose(fp);
+									  return false;
+							  }
+					      }
             }
+            isFirstTime = false;
+        }
 
 			if (encoding != -1)
 			{

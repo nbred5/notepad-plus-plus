@@ -32,7 +32,7 @@
 #include "Parameters.h"
 #include "FindReplaceDlg_rc.h"
 
-const int WS_TOOLBARSTYLE = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS |TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER;
+const int WS_TOOLBARSTYLE = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS | TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER;
 
 void ToolBar::initTheme(TiXmlDocument *toolIconsDocRoot)
 {
@@ -393,7 +393,7 @@ void ToolBar::addToRebar(ReBar * rebar)
 	_rbBand.fMask   = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE |
 					  RBBIM_SIZE | RBBIM_IDEALSIZE | RBBIM_ID;
 
-	_rbBand.fStyle		= RBBS_VARIABLEHEIGHT | RBBS_USECHEVRON | RBBS_NOGRIPPER;
+	_rbBand.fStyle		= RBBS_VARIABLEHEIGHT | RBBS_USECHEVRON | RBBS_NOGRIPPER | RBBS_CHILDEDGE;
 	_rbBand.hwndChild	= getHSelf();
 	_rbBand.wID			= REBAR_BAR_TOOLBAR;	//ID REBAR_BAR_TOOLBAR for toolbar
 	_rbBand.cxMinChild	= 0;
@@ -434,7 +434,9 @@ bool ReBar::addBand(REBARBANDINFO * rBand, bool useID)
 	}
 	else
 		rBand->fStyle = RBBS_GRIPPERALWAYS;
+	rBand->fStyle &= RBBS_CHILDEDGE | RBBS_USECHEVRON;
 	rBand->fMask |= RBBIM_ID | RBBIM_STYLE;
+
 	if (useID) {
 		if (isIDTaken(rBand->wID))
 			return false;

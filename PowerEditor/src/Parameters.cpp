@@ -4763,6 +4763,16 @@ void NppParameters::feedScintillaParam(TiXmlNode *node)
 		else if (!lstrcmp(nm, TEXT("no")))
 			_svp._doSmoothFont = false;
 	}
+
+	// Do Direct Draw
+	nm = element->Attribute(TEXT("directDraw"));
+	if (nm)
+	{
+		if (!lstrcmp(nm, TEXT("yes")))
+			_svp._doDirectDraw = true;
+		else if (!lstrcmp(nm, TEXT("no")))
+			_svp._doDirectDraw = false;
+	}
 }
 
 
@@ -4898,6 +4908,7 @@ bool NppParameters::writeScintillaParams(const ScintillaViewParams & svp)
 	(scintNode->ToElement())->SetAttribute(TEXT("eolShow"), svp._eolShow?TEXT("show"):TEXT("hide"));
 	(scintNode->ToElement())->SetAttribute(TEXT("borderWidth"), svp._borderWidth);
 	(scintNode->ToElement())->SetAttribute(TEXT("smoothFont"), svp._doSmoothFont ? TEXT("yes") : TEXT("no"));
+	(scintNode->ToElement())->SetAttribute(TEXT("directDraw"), svp._doDirectDraw ? TEXT("yes") : TEXT("no"));
 	return true;
 }
 

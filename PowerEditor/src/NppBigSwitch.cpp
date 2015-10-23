@@ -1229,6 +1229,17 @@ LRESULT Notepad_plus::process(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lPa
 			return TRUE;
 		}
 
+		case NPPM_SETDIRECTDRAW:
+		{
+			int param = (lParam == 0 ? SC_TECHNOLOGY_DEFAULT : SC_TECHNOLOGY_DIRECTWRITE);
+			_mainEditView.execute(SCI_SETTECHNOLOGY, param);
+			_subEditView.execute(SCI_SETTECHNOLOGY, param);
+			param = (lParam == 0 ? 1 : 0);
+			_mainEditView.execute(SCI_SETBUFFEREDDRAW, param);
+			_subEditView.execute(SCI_SETBUFFEREDDRAW, param);
+			return TRUE;
+		}
+
 		case NPPM_INTERNAL_SETMULTISELCTION:
 		{
 			NppGUI & nppGUI = (NppGUI &)pNppParam->getNppGUI();

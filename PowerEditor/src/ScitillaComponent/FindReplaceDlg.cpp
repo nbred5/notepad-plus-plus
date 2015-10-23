@@ -2998,6 +2998,7 @@ void FindIncrementDlg::addToRebar(ReBar * rebar)
 
 	_pRebar->addBand(&_rbBand, true);
 	_pRebar->setGrayBackground(_rbBand.wID);
+	_pRebar->setIDVisible(_rbBand.wID, false);
 }
 
 const TCHAR Progress::cClassName[] = TEXT("NppProgressClass");

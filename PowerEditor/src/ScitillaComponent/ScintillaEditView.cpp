@@ -173,7 +173,7 @@ void ScintillaEditView::init(HINSTANCE hInst, HWND hPere)
 
 	Window::init(hInst, hPere);
    _hSelf = ::CreateWindowEx(
-					WS_EX_CLIENTEDGE,\
+					0,\
 					TEXT("Scintilla"),\
 					TEXT("Notepad++"),\
 					WS_CHILD | WS_VSCROLL | WS_HSCROLL | WS_CLIPCHILDREN | WS_EX_RTLREADING,\
@@ -3024,6 +3024,19 @@ void ScintillaEditView::changeTextDirection(bool isRTL)
 	long exStyle = ::GetWindowLongPtr(_hSelf, GWL_EXSTYLE);
 	exStyle = isRTL ? exStyle | WS_EX_LAYOUTRTL : exStyle&(~WS_EX_LAYOUTRTL);
 	::SetWindowLongPtr(_hSelf, GWL_EXSTYLE, exStyle);
+}
+
+void ScintillaEditView::removeWindowBorder(bool mustRemove)
+{ //Called in DocTabView::reSizeTo
+	long exStyle = ::GetWindowLongPtr(_hSelf, GWL_EXSTYLE);
+
+	if (not mustRemove)
+		exStyle |= WS_EX_CLIENTEDGE;
+	else
+		exStyle &= ~WS_EX_CLIENTEDGE;
+
+	::SetWindowLongPtr(_hSelf, GWL_EXSTYLE, exStyle);
+	::SetWindowPos(_hSelf, NULL, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
 
 generic_string ScintillaEditView::getEOLString()

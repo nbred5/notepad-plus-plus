@@ -51,12 +51,12 @@ public :
 		TabBarPlus::destroy();
 	};
 
-	void init(HINSTANCE hInst, HWND parent, ScintillaEditView * pView, IconList *pIconList = NULL)
+	void init(HINSTANCE hInst, HWND parent, ScintillaEditView * pView)
 	{
 		TabBarPlus::init(hInst, parent);
 		_pView = pView;
-		if (pIconList)
-			TabBar::setImageList(pIconList->getHandle());
+		/*if (pIconList)
+			TabBar::setImageList(pIconList->getHandle());*/
 		return;
 	};
 

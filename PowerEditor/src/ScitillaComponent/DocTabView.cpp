@@ -154,7 +154,7 @@ void DocTabView::bufferUpdated(Buffer * buffer, int mask)
 	//We must make space for the added ampersand characters.
 	TCHAR encodedLabel[2 * MAX_PATH];
 
-	if (mask & BufferChangeFilename)
+	if (mask & BufferChangeFilename || mask & BufferChangeDirty)
 	{
 		tie.mask |= TCIF_TEXT;
 		tie.pszText = (TCHAR *)encodedLabel;
@@ -166,6 +166,8 @@ void DocTabView::bufferUpdated(Buffer * buffer, int mask)
 			//This code will read in one character at a time and duplicate every first ampersand(&).
 			//ex. If input is "test & test && test &&&" then output will be "test && test &&& test &&&&".
 			//Tab's caption must be encoded like this because otherwise tab control would make tab too small or too big for the text.
+			if (buffer->isDirty())
+				*out++ = '*';
 
 			while (*in != 0)
 			if (*in == '&')
@@ -218,10 +220,23 @@ void DocTabView::reSizeTo(RECT & rc)
 	else
 	{
 		TabBar::reSizeTo(rc);
-		rc.left	 += borderWidth;
-		rc.right -= borderWidth * 2;
+		rc.left	 += 2;
+		rc.right -= 5;
 		rc.top   += borderWidth;
-		rc.bottom -= (borderWidth * 2);
+		rc.bottom -= (borderWidth + 3);
 		_pView->reSizeTo(rc);
 	}
+  
+	//Control the border style of ScintillaEditView window, according to our border width value
+	//static bool hasBorder = true;
+	//if (borderWidth > 0 && !hasBorder) 
+ //  {
+	//	_pView->removeWindowBorder(false); //ScintillaEditView::removeWindowBorder
+	//	hasBorder = true;
+	//}
+	//else if (borderWidth == 0 && hasBorder) 
+ //  {
+		//_pView->removeWindowBorder(true); //if we set borderWidth to 0, we want the editor window without any border
+		/*hasBorder = false;
+	}*/
 }
