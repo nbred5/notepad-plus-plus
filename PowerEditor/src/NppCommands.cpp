@@ -1353,11 +1353,7 @@ void Notepad_plus::command(int id)
 
 			//Resize the tab height
 			int tabDpiDynamicalWidth = NppParameters::getInstance()->_dpiManager.scaleX(45);
-<<<<<<< HEAD
 			int tabDpiDynamicalHeight = NppParameters::getInstance()->_dpiManager.scaleY(_toReduceTabBar?18:25);
-=======
-			int tabDpiDynamicalHeight = NppParameters::getInstance()->_dpiManager.scaleY(_toReduceTabBar?22:25);
->>>>>>> upstream/master
 			TabCtrl_SetItemSize(_mainDocTab.getHSelf(), tabDpiDynamicalWidth, tabDpiDynamicalHeight);
 			TabCtrl_SetItemSize(_subDocTab.getHSelf(), tabDpiDynamicalWidth, tabDpiDynamicalHeight);
 			_docTabIconList.setIconSize(iconDpiDynamicalSize);
@@ -1406,11 +1402,7 @@ void Notepad_plus::command(int id)
 
 			// This part is just for updating (redraw) the tabs
 			{
-<<<<<<< HEAD
 				int tabDpiDynamicalHeight = NppParameters::getInstance()->_dpiManager.scaleY(TabBarPlus::drawTabCloseButton()?20:20);
-=======
-				int tabDpiDynamicalHeight = NppParameters::getInstance()->_dpiManager.scaleY(TabBarPlus::drawTabCloseButton()?22:22);
->>>>>>> upstream/master
 				int tabDpiDynamicalWidth = NppParameters::getInstance()->_dpiManager.scaleX(TabBarPlus::drawTabCloseButton() ? 60:45);
 				TabCtrl_SetItemSize(_mainDocTab.getHSelf(), tabDpiDynamicalWidth, tabDpiDynamicalHeight);
 				TabCtrl_SetItemSize(_subDocTab.getHSelf(), tabDpiDynamicalWidth, tabDpiDynamicalHeight);
